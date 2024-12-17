@@ -53,7 +53,32 @@ export class TokenRevocationClient {
     });
   }
 
-  _revoke(url, client_id, client_secret, token, type) {
+  async _revoke(url, client_id, client_secret, token, type) {
+    var options = {method: "POST", headers:{}, body: ""}
+    options.headers["Content-Type"] = "application/x-www-form-urlencoded"
+    let body = new URLSearchParams();
+    body.append("client_id", client_id);
+    if (client_secret) {
+      body.append("client_secret", client_secret);
+    }
+    body.append("token_type_hint", type);
+    body.append("token", token);
+    options.body = body.toString();
+
+    try {
+      const rc = await fetch(url, options);
+      Log.debug("TokenRevocationClient.revoke: HTTP response received, status", rc.status);
+      if (rc.ok && rc.status == 200) {
+        return
+      } else {
+        throw new Error(rc.statusText + " (" + rc.status + ")")
+      }
+    } catch(ex) {
+      throw new Error("TokenRevocationClient.revoke: Network Error.", ex.message)
+    }
+  }
+
+  _revoke0(url, client_id, client_secret, token, type) {
     return new Promise((resolve, reject) => {
       var xhr = new this._XMLHttpRequestCtor();
       xhr.open("POST", url);

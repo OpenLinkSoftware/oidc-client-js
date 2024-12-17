@@ -24,202 +24,122 @@ export class JsonService {
     this._jwtHandler = jwtHandler;
   }
 
-  getJson(url, token) {
+  async getJson(url, token) {
     if (!url) {
       Log.error("JsonService.getJson: No url passed");
       throw new Error("url");
     }
 
     Log.debug("JsonService.getJson, url: ", url);
+    var allowedContentTypes = this._contentTypes;
+    var jwtHandler = this._jwtHandler;
+    var found = null;
+    var options = {method: "GET", headers:{} }
 
-    return new Promise((resolve, reject) => {
-      var req = new this._XMLHttpRequest();
-      req.open("GET", url);
+    if (token) {
+      options.headers["Authorization"] = "Bearer " + token
+      Log.debug("JsonService.getJson: token passed, setting Authorization header");
+    }
 
-      var allowedContentTypes = this._contentTypes;
-      var jwtHandler = this._jwtHandler;
-
-      req.onload = function () {
-        Log.debug(
-          "JsonService.getJson: HTTP response received, status",
-          req.status
-        );
-
-        if (req.status === 200) {
-          var contentType = req.getResponseHeader("Content-Type");
-          if (contentType) {
-            var found = allowedContentTypes.find((item) => {
-              if (contentType.startsWith(item)) {
-                return true;
-              }
-            });
-
-            if (found == "application/jwt") {
-              jwtHandler(req).then(resolve, reject);
-              return;
-            }
-
-            if (found) {
-              try {
-                resolve(JSON.parse(req.responseText));
-                return;
-              } catch (e) {
-                Log.error(
-                  "JsonService.getJson: Error parsing JSON response",
-                  e.message
-                );
-                reject(e);
-                return;
-              }
-            }
+    const rc = await fetch(url, options);
+    if (rc.ok && rc.status == 200) {
+      const contentType = rc.headers.get("Content-Type");
+      if (contentType) {
+        let found = null;
+        for(const item of allowedContentTypes) 
+          if (contentType.startsWith(item)) {
+            found = item;
+            break;
           }
-
-          reject(
-            Error(
-              "Invalid response Content-Type: " +
-                contentType +
-                ", from URL: " +
-                url
-            )
-          );
-        } else {
-          reject(Error(req.statusText + " (" + req.status + ")"));
+        if (found === "application/jwt") {
+          const req = {'responseText': await rc.text()}
+          const jwt = await jwtHandler(req);
+          return jwt
         }
-      };
-
-      req.onerror = function () {
-        Log.error("JsonService.getJson: network error");
-        reject(Error("Network Error"));
-      };
-
-      if (token) {
-        Log.debug(
-          "JsonService.getJson: token passed, setting Authorization header"
-        );
-        req.setRequestHeader("Authorization", "Bearer " + token);
+        if (found) {
+          try {
+            const json = await rc.json();
+            return json
+          } catch(ex) {
+            Log.error("JsonService.getJson: Error parsing JSON response ", ex.message);
+            throw(ex)
+          }
+        }
+        throw new Error("Invalid response Content-Type: " + contentType + ", from URL: " + url)
       }
-
-      req.send();
-    });
+    }
+    throw new Error(rc.statusText + " (" + rc.status + ")");
   }
 
-  postForm(url, payload, basicAuth) {
+  async postForm(url, payload, basicAuth) {
     if (!url) {
       Log.error("JsonService.postForm: No url passed");
       throw new Error("url");
     }
 
     Log.debug("JsonService.postForm, url: ", url);
+    var allowedContentTypes = this._contentTypes;
+    var options = {method: "POST", headers:{}, body: ""}
+    
+    options.headers["Content-Type"] = "application/x-www-form-urlencoded"
+    if (basicAuth !== undefined) {
+      options.headers["Authorization"] = "Basic " + btoa(basicAuth);
+    }
 
-    return new Promise((resolve, reject) => {
-      var req = new this._XMLHttpRequest();
-      req.open("POST", url);
+    let body = new URLSearchParams();
+    for (let key in payload) {
+      body.append(key, payload[key])
+    }
+    options.body = body.toString();
 
-      var allowedContentTypes = this._contentTypes;
-
-      req.onload = function () {
-        Log.debug(
-          "JsonService.postForm: HTTP response received, status",
-          req.status
-        );
-
-        if (req.status === 200) {
-          var contentType = req.getResponseHeader("Content-Type");
-          if (contentType) {
-            var found = allowedContentTypes.find((item) => {
-              if (contentType.startsWith(item)) {
-                return true;
-              }
-            });
-
-            if (found) {
-              try {
-                resolve(JSON.parse(req.responseText));
-                return;
-              } catch (e) {
-                Log.error(
-                  "JsonService.postForm: Error parsing JSON response",
-                  e.message
-                );
-                reject(e);
-                return;
-              }
-            }
+    const rc = await fetch(url, options);
+    if (rc.ok && rc.status == 200) {
+      const contentType = rc.headers.get("Content-Type");
+      if (contentType) {
+        let found = null;
+        for(const item of allowedContentTypes) 
+          if (contentType.startsWith(item)) {
+            found = item;
+            break;
           }
-
-          reject(
-            Error(
-              "Invalid response Content-Type: " +
-                contentType +
-                ", from URL: " +
-                url
-            )
-          );
-          return;
-        }
-
-        if (req.status === 400) {
-          var contentType = req.getResponseHeader("Content-Type");
-          if (contentType) {
-            var found = allowedContentTypes.find((item) => {
-              if (contentType.startsWith(item)) {
-                return true;
-              }
-            });
-
-            if (found) {
-              try {
-                var payload = JSON.parse(req.responseText);
-                if (payload && payload.error) {
-                  Log.error(
-                    "JsonService.postForm: Error from server: ",
-                    payload.error
-                  );
-                  reject(new Error(payload.error));
-                  return;
-                }
-              } catch (e) {
-                Log.error(
-                  "JsonService.postForm: Error parsing JSON response",
-                  e.message
-                );
-                reject(e);
-                return;
-              }
-            }
+        if (found) {
+          try {
+            const json = await rc.json();
+            return json
+          } catch(ex) {
+            throw new Error("JsonService.postForm: Error parsing JSON response "+ex.message)
           }
         }
 
-        reject(Error(req.statusText + " (" + req.status + ")"));
-      };
-
-      req.onerror = function () {
-        Log.error("JsonService.postForm: network error");
-        reject(Error("Network Error"));
-      };
-
-      let body = "";
-      for (let key in payload) {
-        let value = payload[key];
-
-        if (value) {
-          if (body.length > 0) {
-            body += "&";
+        throw new Error("Invalid response Content-Type: " + contentType + ", from URL: " + url)
+      }
+    }
+    if (rc.status === 400) {
+      const contentType = rc.headers.get("Content-Type");
+      if (contentType) {
+        let found = null;
+        for(const item of allowedContentTypes) 
+          if (contentType.startsWith(item)) {
+            found = item;
+            break;
           }
 
-          body += encodeURIComponent(key);
-          body += "=";
-          body += encodeURIComponent(value);
+        if (found) {
+          try {
+            var payload = await rc.json();
+            if (payload && payload.error) {
+              Log.error("JsonService.postForm: Error from server: ", payload.error);
+              throw new Error(payload.error);
+            }
+          } catch (ex) {
+            const msg = "JsonService.postForm: Error parsing JSON response: ";
+            Log.error(msg, ex.message);
+            throw(ex);
+          }
         }
       }
-
-      req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-      if (basicAuth !== undefined) {
-        req.setRequestHeader("Authorization", "Basic " + btoa(basicAuth));
-      }
-
-      req.send(body);
-    });
+    }
+    throw new Error(rc.statusText + " (" + rc.status + ")");
   }
+
 }
