@@ -48,6 +48,7 @@ If you are using UMD/AMD and/or you already have included an ES6 polyfill (such 
 ```
 git clone https://github.com/inrupt/oidc-client-js.git
 cd oidc-client-js
+export NODE_OPTIONS=--openssl-legacy-provider
 npm install
 npm run build
 ```
