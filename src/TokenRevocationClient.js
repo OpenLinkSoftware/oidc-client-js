@@ -78,37 +78,4 @@ export class TokenRevocationClient {
     }
   }
 
-  _revoke0(url, client_id, client_secret, token, type) {
-    return new Promise((resolve, reject) => {
-      var xhr = new this._XMLHttpRequestCtor();
-      xhr.open("POST", url);
-
-      xhr.onload = () => {
-        Log.debug(
-          "TokenRevocationClient.revoke: HTTP response received, status",
-          xhr.status
-        );
-
-        if (xhr.status === 200) {
-          resolve();
-        } else {
-          reject(Error(xhr.statusText + " (" + xhr.status + ")"));
-        }
-      };
-      xhr.onerror = () => {
-        Log.debug("TokenRevocationClient.revoke: Network Error.");
-        reject("Network Error");
-      };
-
-      var body = "client_id=" + encodeURIComponent(client_id);
-      if (client_secret) {
-        body += "&client_secret=" + encodeURIComponent(client_secret);
-      }
-      body += "&token_type_hint=" + encodeURIComponent(type);
-      body += "&token=" + encodeURIComponent(token);
-
-      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-      xhr.send(body);
-    });
-  }
 }
