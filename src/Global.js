@@ -41,9 +41,10 @@ export class Global {
   }
 
   static get XMLHttpRequest() {
-    if (!testing && typeof window !== "undefined") {
-      return request || XMLHttpRequest;
-    }
+    //if (!testing && typeof window !== "undefined") {
+    //  return request || XMLHttpRequest;
+    //}
+    return null;
   }
 
   static get timer() {

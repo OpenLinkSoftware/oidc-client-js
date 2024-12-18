@@ -7,7 +7,7 @@ import { Global } from "./Global.js";
 export class JsonService {
   constructor(
     additionalContentTypes = null,
-    XMLHttpRequestCtor = Global.XMLHttpRequest,
+    //XMLHttpRequestCtor = Global.XMLHttpRequest,
     jwtHandler = null
   ) {
     if (additionalContentTypes && Array.isArray(additionalContentTypes)) {
@@ -20,7 +20,7 @@ export class JsonService {
       this._contentTypes.push("application/jwt");
     }
 
-    this._XMLHttpRequest = XMLHttpRequestCtor;
+    //this._XMLHttpRequest = XMLHttpRequestCtor;
     this._jwtHandler = jwtHandler;
   }
 

@@ -11,7 +11,7 @@ const RefreshTokenTypeHint = "refresh_token";
 export class TokenRevocationClient {
   constructor(
     settings,
-    XMLHttpRequestCtor = Global.XMLHttpRequest,
+    //XMLHttpRequestCtor = Global.XMLHttpRequest,
     MetadataServiceCtor = MetadataService
   ) {
     if (!settings) {
@@ -20,7 +20,7 @@ export class TokenRevocationClient {
     }
 
     this._settings = settings;
-    this._XMLHttpRequestCtor = XMLHttpRequestCtor;
+    //this._XMLHttpRequestCtor = XMLHttpRequestCtor;
     this._metadataService = new MetadataServiceCtor(this._settings);
   }
 
